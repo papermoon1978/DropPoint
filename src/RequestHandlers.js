@@ -4,7 +4,6 @@ const Store = require("electron-store");
 
 global.share = { ipcMain };
 
-// const { addToInstanceHistory } = require("./History");
 const icons = require("./Icons");
 
 /**
@@ -12,19 +11,26 @@ const icons = require("./Icons");
  * @param {Array} fileList The collection of files currently dragged into the window
  * @return {String} Name of icon according to filetype
  */
-let getFileTypeIcons = (fileList) => {
-  let fileType;
-  if (fileList.length <= 1) {
-    fileType = fileList[0].fileType;
-    if (fileType !== "application") {
-      fileType = icons[fileType];
-    } else {
-      fileType = icons.file;
+let getFileTypeIcons = (fileList) =>
+{
+    let fileType;
+    if (fileList.length <= 1)
+    {
+        fileType = fileList[0].fileType;
+        if (fileType !== "application")
+        {
+            fileType = icons[fileType];
+        }
+        else
+        {
+            fileType = icons.file;
+        }
     }
-  } else {
-    fileType = icons.multifile;
-  }
-  return fileType;
+    else
+    {
+        fileType = icons.multifile;
+    }
+    return fileType;
 };
 
 /**
@@ -34,12 +40,14 @@ let getFileTypeIcons = (fileList) => {
  * @param {Array} fileList - List of files
  * @return {Array} List of paths of files in fileList
  */
-let getFilePathList = (fileList) => {
-  let filePathList = [];
-  fileList.forEach((element) => {
-    filePathList.push(element.filepath);
-  });
-  return filePathList;
+let getFilePathList = (fileList) =>
+{
+    let filePathList = [];
+    fileList.forEach((element) =>
+    {
+        filePathList.push(element.filepath);
+    });
+    return filePathList;
 };
 
 /**
@@ -48,51 +56,76 @@ let getFilePathList = (fileList) => {
  *
  * @param {Array} fileList - List of files
  */
-let dragHandler = ipcMain.on("ondragstart", (event, params) => {
-  console.log("Params - filelist: " + JSON.stringify(params));
-  let fileTypeIcons = getFileTypeIcons(params.filelist);
-  let filePathList = getFilePathList(params.filelist);
-  event.sender.startDrag({
-    files: filePathList,
-    icon: nativeImage.createFromPath(fileTypeIcons).resize({ width: 64 }),
-  });
-  // addToInstanceHistory(params.instanceId, params.filelist);
-  event.sender.send("close-signal");
+let dragHandler = ipcMain.on("ondragstart", (event, params) =>
+{
+    console.log("Params - filelist: " + JSON.stringify(params));
+    let fileTypeIcons = getFileTypeIcons(params.filelist);
+    let filePathList = getFilePathList(params.filelist);
+    event.sender.startDrag(
+    {
+        files: filePathList,
+        icon: nativeImage.createFromPath(fileTypeIcons).resize({ width: 64 }),
+    });
+    
+    event.sender.send("close-signal");
 });
 
 /**
  * For minimising instance on clicking the button
  */
-let minimiseHandler = ipcMain.on("minimise", (event) => {
-  event.sender.send("close-signal");
+let minimiseHandler = ipcMain.on("minimise", (event) =>
+{
+    event.sender.send("close-signal");
 });
 
 /**
  * For printing custom debug log in development console rather than browser
  */
-let debugPrint = ipcMain.on("debugPrint", (event, message) => {
-  console.log("[*] Debug Print: ");
-  console.log(message);
+let debugPrint = ipcMain.on("debugPrint", (event, message) =>
+{
+    console.log("[*] Debug Print: ");
+    console.log(message);
 });
 
 /**
  * Fetching config and schema
  */
-let fetchConfig = ipcMain.on("fetchConfig", (event) => {
-  const config = new Store(configOptions);
-  const schema = configOptions.schema;
-  event.sender.send(
-    "configObj",
-    JSON.stringify({
-      config: config,
-      schema: schema,
-    })
-  );
+let fetchConfig = ipcMain.on("fetchConfig", (event) =>
+{
+    const config = new Store(configOptions);
+    const schema = configOptions.schema;      
+    event.sender.send(
+        "configObj",
+        JSON.stringify(
+        {
+            config: config,
+            schema: schema,
+        })
+    );
 });
 
-module.exports = {
-  dragHandler: dragHandler,
-  minimiseHandler: minimiseHandler,
-  debugPrint: debugPrint,
-  fetchConfig: fetchConfig,
+let saveConfig = ipcMain.on("saveConfig", (event, data) =>
+{    
+    const config = new Store(configOptions);    
+    
+    for (let setting of data)
+    {        
+        config.set(setting.key, setting.value);        
+    }        
+});
+
+let resetConfig = ipcMain.on("resetConfig", (event) =>
+{    
+    const config = new Store(configOptions.defaults);    
+    config.clear();        
+});
+
+module.exports =
+{
+    dragHandler: dragHandler,
+    minimiseHandler: minimiseHandler,
+    debugPrint: debugPrint,
+    fetchConfig: fetchConfig,
+    saveConfig: saveConfig,
+    resetConfig: resetConfig
 };
